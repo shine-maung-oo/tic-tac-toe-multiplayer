@@ -6,7 +6,7 @@ export async function POST() {
   // Make sure we don't collide with an existing room id.
   let id = generateId();
   let attempts = 0;
-  while (getRoom(id) && attempts < 10) {
+  while ((await getRoom(id)) && attempts < 10) {
     id = generateId();
     attempts++;
   }
@@ -14,7 +14,7 @@ export async function POST() {
   const token = generateToken();
   const now = Date.now();
 
-  setRoom({
+  await setRoom({
     id,
     board: createEmptyBoard(),
     turn: "X",

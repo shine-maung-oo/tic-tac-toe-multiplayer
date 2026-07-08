@@ -33,7 +33,9 @@ app somewhere public — see below — and share that URL instead.
 ## How it works
 
 - `lib/game.ts` — board logic: win/draw detection, ID/token generation.
-- `lib/store.ts` — an in-memory `Map` holding all active rooms.
+- `lib/store.ts` — room storage. Uses Upstash Redis when configured (see
+  Deploying section below); otherwise falls back to an in-memory `Map` for
+  local development.
 - `app/api/room/create` — creates a room, returns a room code + your token.
 - `app/api/room/[id]/join` — the second player joins as `O`.
 - `app/api/room/[id]` — `GET` returns the current board/turn/winner (this is
@@ -52,23 +54,39 @@ stop accidental collisions).
 
 ## Deploying so anyone, anywhere can play
 
-You can deploy this to Vercel, Render, Railway, or any Node host. One
-important caveat:
+You can deploy this to Vercel, Render, Railway, or any Node host.
 
-> **The in-memory store (`lib/store.ts`) only works reliably on a single
-> server process.** Platforms like Vercel can run multiple serverless
-> instances, so two players might land on different instances and not see
-> the same room.
->
-> - Easiest fix for Vercel: deploy with a single long-running Node server
->   instead of serverless functions (e.g. `next start` on a small VPS,
->   Render, Railway, or Fly.io — all run one persistent process by default).
-> - If you want to stay on Vercel's serverless functions: swap the `Map` in
->   `lib/store.ts` for a shared store like [Vercel KV](https://vercel.com/docs/storage/vercel-kv),
->   Upstash Redis, or a small database. Only that one file needs to change —
->   every API route just calls `getRoom`/`setRoom`/`deleteRoom`.
+> **Important:** Vercel (and similar serverless platforms) can run multiple
+> instances of your app at once. Player 1's request might hit instance A
+> while player 2's hits instance B — and since the original in-memory store
+> only lived in one instance's memory, the room would look "not found"
+> almost immediately, even seconds after being created. This project now
+> uses [Upstash Redis](https://upstash.com) — a shared store every instance
+> can see — to fix that.
 
-Rooms are also automatically cleared out after 6 hours to keep memory tidy.
+### Setting up Redis (needed for Vercel / most hosted deployments)
+
+1. Create a free account at [upstash.com](https://upstash.com) and create a
+   new Redis database (any region close to your deployment is fine).
+2. On the database's page, copy the **REST URL** and **REST Token**.
+3. Add them as environment variables:
+   - Locally: create a `.env.local` file in the project root with:
+     ```
+     UPSTASH_REDIS_REST_URL=your-url-here
+     UPSTASH_REDIS_REST_TOKEN=your-token-here
+     ```
+   - On Vercel: Project Settings → Environment Variables → add the same two
+     keys, then redeploy.
+4. That's it — `lib/store.ts` detects these automatically and switches from
+   the in-memory fallback to Redis. No other code changes needed.
+
+**Local development without Redis:** if you don't set those two environment
+variables, the app automatically falls back to the in-memory store — fine
+for `npm run dev` on your own machine, but not for a multi-instance
+deployment.
+
+Rooms self-expire after 6 hours either way (via Redis TTL, or the
+in-memory cleanup check).
 
 ## Notes / possible next steps
 

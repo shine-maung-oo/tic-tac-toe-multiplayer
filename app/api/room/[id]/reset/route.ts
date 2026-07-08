@@ -8,7 +8,7 @@ export async function POST(
 ) {
   const { id } = await params;
   const roomId = id.toUpperCase();
-  const room = getRoom(roomId);
+  const room = await getRoom(roomId);
 
   if (!room) {
     return NextResponse.json({ error: "Room not found" }, { status: 404 });
@@ -26,7 +26,7 @@ export async function POST(
   room.winningLine = null;
   room.turn = "X";
   room.updatedAt = Date.now();
-  setRoom(room);
+  await setRoom(room);
 
   return NextResponse.json({
     id: room.id,
