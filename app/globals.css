@@ -1,0 +1,83 @@
+@import url("https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Inter:wght@400;500;600&display=swap");
+
+:root {
+  --board-slate: #232f29;
+  --board-slate-light: #2c3a33;
+  --chalk-white: #f1efe4;
+  --chalk-yellow: #e8c468;
+  --chalk-rose: #d98a86;
+  --chalk-dust: rgba(241, 239, 228, 0.09);
+  --chalk-dust-strong: rgba(241, 239, 228, 0.18);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  min-height: 100vh;
+  background: var(--board-slate);
+  color: var(--chalk-white);
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+body {
+  background-image: repeating-linear-gradient(
+      0deg,
+      transparent 0px,
+      transparent 38px,
+      var(--chalk-dust) 39px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      transparent 38px,
+      var(--chalk-dust) 39px
+    );
+  background-attachment: fixed;
+}
+
+h1,
+h2,
+h3,
+.chalk-font {
+  font-family: "Kalam", cursive;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+}
+
+::selection {
+  background: var(--chalk-yellow);
+  color: var(--board-slate);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
