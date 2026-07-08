@@ -15,8 +15,9 @@ export async function POST(
   }
 
   const { token, index } = await req.json();
+  const cellCount = room.size * room.size;
 
-  if (typeof index !== "number" || index < 0 || index > 8) {
+  if (typeof index !== "number" || index < 0 || index > cellCount - 1) {
     return NextResponse.json({ error: "Invalid cell index" }, { status: 400 });
   }
 
@@ -39,7 +40,7 @@ export async function POST(
   }
 
   room.board[index] = mark;
-  const { winner, line } = checkWinner(room.board);
+  const { winner, line } = checkWinner(room.board, room.size, room.winLength);
   room.winner = winner;
   room.winningLine = line;
   room.turn = mark === "X" ? "O" : "X";
@@ -48,6 +49,9 @@ export async function POST(
 
   return NextResponse.json({
     id: room.id,
+    mode: room.mode,
+    size: room.size,
+    winLength: room.winLength,
     board: room.board,
     turn: room.turn,
     winner: room.winner,

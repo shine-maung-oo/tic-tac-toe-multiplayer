@@ -1,8 +1,20 @@
-import { NextResponse } from "next/server";
-import { createEmptyBoard, generateId, generateToken } from "@/lib/game";
+import { NextRequest, NextResponse } from "next/server";
+import {
+  GAME_MODES,
+  GameMode,
+  createEmptyBoard,
+  generateId,
+  generateToken,
+  isGameMode,
+} from "@/lib/game";
 import { getRoom, setRoom } from "@/lib/store";
 
-export async function POST() {
+export async function POST(req: NextRequest) {
+  const body = await req.json().catch(() => ({}));
+  const requestedMode = body?.mode;
+  const mode: GameMode = isGameMode(requestedMode) ? requestedMode : "classic";
+  const { size, winLength } = GAME_MODES[mode];
+
   // Make sure we don't collide with an existing room id.
   let id = generateId();
   let attempts = 0;
@@ -16,7 +28,10 @@ export async function POST() {
 
   await setRoom({
     id,
-    board: createEmptyBoard(),
+    mode,
+    size,
+    winLength,
+    board: createEmptyBoard(size),
     turn: "X",
     players: { X: token, O: null },
     winner: null,
@@ -25,5 +40,5 @@ export async function POST() {
     updatedAt: now,
   });
 
-  return NextResponse.json({ roomId: id, player: "X", token });
+  return NextResponse.json({ roomId: id, player: "X", token, mode, size });
 }

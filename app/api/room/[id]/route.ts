@@ -15,6 +15,9 @@ export async function GET(
 
   return NextResponse.json({
     id: room.id,
+    mode: room.mode,
+    size: room.size,
+    winLength: room.winLength,
     board: room.board,
     turn: room.turn,
     winner: room.winner,

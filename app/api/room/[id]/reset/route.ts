@@ -21,7 +21,7 @@ export async function POST(
     return NextResponse.json({ error: "Invalid player token" }, { status: 403 });
   }
 
-  room.board = createEmptyBoard();
+  room.board = createEmptyBoard(room.size);
   room.winner = null;
   room.winningLine = null;
   room.turn = "X";
@@ -30,6 +30,9 @@ export async function POST(
 
   return NextResponse.json({
     id: room.id,
+    mode: room.mode,
+    size: room.size,
+    winLength: room.winLength,
     board: room.board,
     turn: room.turn,
     winner: room.winner,

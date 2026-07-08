@@ -2,10 +2,14 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import type { Cell, Mark } from "@/lib/game";
+import type { Cell, GameMode, Mark } from "@/lib/game";
+import { GAME_MODES } from "@/lib/game";
 
 interface RoomView {
   id: string;
+  mode: GameMode;
+  size: number;
+  winLength: number;
   board: Cell[];
   turn: Mark;
   winner: Mark | "draw" | null;
@@ -152,6 +156,7 @@ export default function RoomPage() {
 
   const isMyTurn = room.turn === session.player && !room.winner;
   const waitingForOpponent = session.player === "X" ? !room.hasO : !room.hasX;
+  const modeLabel = GAME_MODES[room.mode]?.label ?? "Classic 3×3";
 
   let statusText: string;
   if (room.winner === "draw") {
@@ -191,6 +196,7 @@ export default function RoomPage() {
             borderRadius: 8,
             padding: "6px 12px",
             fontSize: "0.8rem",
+            cursor: "pointer",
           }}
         >
           {copied ? "Copied!" : "Copy code"}
@@ -203,6 +209,8 @@ export default function RoomPage() {
           gap: 16,
           fontSize: "0.9rem",
           color: "rgba(241,239,228,0.6)",
+          flexWrap: "wrap",
+          justifyContent: "center",
         }}
       >
         <span style={{ color: session.player === "X" ? "var(--chalk-yellow)" : undefined }}>
@@ -210,10 +218,13 @@ export default function RoomPage() {
         </span>
         <span>·</span>
         <span>{room.hasX && room.hasO ? "Both players present" : "Waiting for opponent"}</span>
+        <span>·</span>
+        <span>{modeLabel}</span>
       </div>
 
       <Board
         board={room.board}
+        size={room.size}
         winningLine={room.winningLine}
         onCellClick={handleCellClick}
         interactive={isMyTurn && !waitingForOpponent}
@@ -250,6 +261,7 @@ export default function RoomPage() {
             color: "#2a2115",
             fontWeight: 600,
             fontSize: "1rem",
+            cursor: "pointer",
           }}
         >
           Rematch
@@ -259,23 +271,38 @@ export default function RoomPage() {
   );
 }
 
+const BOARD_PX = 300; // internal SVG/coordinate space for grid lines + win line
+
+function cellCenter(index: number, size: number): [number, number] {
+  const row = Math.floor(index / size);
+  const col = index % size;
+  const cellPx = BOARD_PX / size;
+  return [col * cellPx + cellPx / 2, row * cellPx + cellPx / 2];
+}
+
 function Board({
   board,
+  size,
   winningLine,
   onCellClick,
   interactive,
 }: {
   board: Cell[];
+  size: number;
   winningLine: number[] | null;
   onCellClick: (i: number) => void;
   interactive: boolean;
 }) {
+  // Bigger grids get a bit more room on screen so cells stay tappable.
+  const maxPx = size <= 3 ? 340 : size <= 5 ? 420 : 520;
+  const cellPx = BOARD_PX / size;
+
   return (
     <div
       style={{
         position: "relative",
-        width: "min(90vw, 340px)",
-        height: "min(90vw, 340px)",
+        width: `min(92vw, ${maxPx}px)`,
+        height: `min(92vw, ${maxPx}px)`,
         background: "var(--board-slate-light)",
         borderRadius: 16,
         border: "1px solid rgba(241,239,228,0.12)",
@@ -283,49 +310,52 @@ function Board({
         padding: 14,
       }}
     >
-      <svg viewBox="0 0 300 300" style={{ position: "absolute", inset: 14 }} aria-hidden>
-        {/* hand-drawn-feeling grid lines */}
-        <path
-          d="M 100 12 C 98 90, 102 200, 99 288"
-          stroke="var(--chalk-white)"
-          strokeOpacity="0.55"
-          strokeWidth="4"
-          strokeLinecap="round"
-          fill="none"
-        />
-        <path
-          d="M 200 10 C 202 100, 198 190, 201 290"
-          stroke="var(--chalk-white)"
-          strokeOpacity="0.55"
-          strokeWidth="4"
-          strokeLinecap="round"
-          fill="none"
-        />
-        <path
-          d="M 12 100 C 100 98, 200 102, 288 99"
-          stroke="var(--chalk-white)"
-          strokeOpacity="0.55"
-          strokeWidth="4"
-          strokeLinecap="round"
-          fill="none"
-        />
-        <path
-          d="M 10 200 C 100 202, 190 198, 290 201"
-          stroke="var(--chalk-white)"
-          strokeOpacity="0.55"
-          strokeWidth="4"
-          strokeLinecap="round"
-          fill="none"
-        />
-        {winningLine && <WinLine indices={winningLine} />}
+      <svg
+        viewBox={`0 0 ${BOARD_PX} ${BOARD_PX}`}
+        style={{ position: "absolute", inset: 14 }}
+        aria-hidden
+      >
+        {Array.from({ length: size - 1 }).map((_, i) => {
+          const pos = (i + 1) * cellPx;
+          return (
+            <line
+              key={`v-${i}`}
+              x1={pos}
+              y1={4}
+              x2={pos}
+              y2={BOARD_PX - 4}
+              stroke="var(--chalk-white)"
+              strokeOpacity="0.5"
+              strokeWidth={size <= 3 ? 4 : 2.5}
+              strokeLinecap="round"
+            />
+          );
+        })}
+        {Array.from({ length: size - 1 }).map((_, i) => {
+          const pos = (i + 1) * cellPx;
+          return (
+            <line
+              key={`h-${i}`}
+              x1={4}
+              y1={pos}
+              x2={BOARD_PX - 4}
+              y2={pos}
+              stroke="var(--chalk-white)"
+              strokeOpacity="0.5"
+              strokeWidth={size <= 3 ? 4 : 2.5}
+              strokeLinecap="round"
+            />
+          );
+        })}
+        {winningLine && <WinLine indices={winningLine} size={size} />}
       </svg>
 
       <div
         style={{
           position: "relative",
           display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
-          gridTemplateRows: "repeat(3, 1fr)",
+          gridTemplateColumns: `repeat(${size}, 1fr)`,
+          gridTemplateRows: `repeat(${size}, 1fr)`,
           width: "100%",
           height: "100%",
         }}
@@ -408,22 +438,12 @@ function OMark() {
   );
 }
 
-const LINE_COORDS: Record<string, [number, number, number, number]> = {
-  "0,1,2": [10, 50, 290, 50],
-  "3,4,5": [10, 150, 290, 150],
-  "6,7,8": [10, 250, 290, 250],
-  "0,3,6": [50, 10, 50, 290],
-  "1,4,7": [150, 10, 150, 290],
-  "2,5,8": [250, 10, 250, 290],
-  "0,4,8": [16, 16, 284, 284],
-  "2,4,6": [284, 16, 16, 284],
-};
+function WinLine({ indices, size }: { indices: number[]; size: number }) {
+  if (indices.length < 2) return null;
+  const [x1, y1] = cellCenter(indices[0], size);
+  const [x2, y2] = cellCenter(indices[indices.length - 1], size);
+  const length = Math.hypot(x2 - x1, y2 - y1) + 20;
 
-function WinLine({ indices }: { indices: number[] }) {
-  const key = indices.join(",");
-  const coords = LINE_COORDS[key];
-  if (!coords) return null;
-  const [x1, y1, x2, y2] = coords;
   return (
     <line
       x1={x1}
@@ -434,12 +454,12 @@ function WinLine({ indices }: { indices: number[] }) {
       strokeWidth="6"
       strokeLinecap="round"
       style={{
-        strokeDasharray: 320,
-        strokeDashoffset: 320,
+        strokeDasharray: length,
+        strokeDashoffset: length,
         animation: "draw-win 400ms ease-out forwards",
       }}
     >
-      <animate attributeName="stroke-dashoffset" from="320" to="0" dur="0.4s" fill="freeze" />
+      <animate attributeName="stroke-dashoffset" from={length} to="0" dur="0.4s" fill="freeze" />
     </line>
   );
 }
@@ -484,6 +504,7 @@ function CenteredMessage({
             color: "#2a2115",
             fontWeight: 600,
             fontSize: "1rem",
+            cursor: "pointer",
           }}
         >
           {action.label}

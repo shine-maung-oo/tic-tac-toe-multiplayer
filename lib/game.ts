@@ -1,8 +1,39 @@
 export type Cell = "X" | "O" | null;
 export type Mark = "X" | "O";
 
+export type GameMode = "classic" | "connect4";
+
+export interface GameModeConfig {
+  size: number; // board is size x size
+  winLength: number; // number of marks in a row needed to win
+  label: string;
+  description: string;
+}
+
+export const GAME_MODES: Record<GameMode, GameModeConfig> = {
+  classic: {
+    size: 3,
+    winLength: 3,
+    label: "Classic 3×3",
+    description: "The original. Three in a row wins.",
+  },
+  connect4: {
+    size: 7,
+    winLength: 4,
+    label: "4 in a Row · 7×7",
+    description: "Bigger board, no gravity — click any cell. Four in a row wins.",
+  },
+};
+
+export function isGameMode(value: unknown): value is GameMode {
+  return typeof value === "string" && value in GAME_MODES;
+}
+
 export interface RoomState {
   id: string;
+  mode: GameMode;
+  size: number;
+  winLength: number;
   board: Cell[];
   turn: Mark;
   players: {
@@ -15,32 +46,62 @@ export interface RoomState {
   updatedAt: number;
 }
 
-const LINES = [
-  [0, 1, 2],
-  [3, 4, 5],
-  [6, 7, 8],
-  [0, 3, 6],
-  [1, 4, 7],
-  [2, 5, 8],
-  [0, 4, 8],
-  [2, 4, 6],
+// Four directions are enough to cover every line orientation on a grid:
+// horizontal, vertical, and both diagonals. Walking each cell as a
+// potential line-start in each direction finds every winning run for any
+// board size / win length combination.
+const DIRECTIONS: Array<[number, number]> = [
+  [0, 1], // horizontal →
+  [1, 0], // vertical ↓
+  [1, 1], // diagonal ↘
+  [1, -1], // diagonal ↙
 ];
 
-export function checkWinner(board: Cell[]): { winner: Mark | "draw" | null; line: number[] | null } {
-  for (const line of LINES) {
-    const [a, b, c] = line;
-    if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-      return { winner: board[a], line };
+export function checkWinner(
+  board: Cell[],
+  size: number,
+  winLength: number
+): { winner: Mark | "draw" | null; line: number[] | null } {
+  const at = (row: number, col: number): Cell => {
+    if (row < 0 || row >= size || col < 0 || col >= size) return null;
+    return board[row * size + col];
+  };
+
+  for (let row = 0; row < size; row++) {
+    for (let col = 0; col < size; col++) {
+      const mark = at(row, col);
+      if (!mark) continue;
+
+      for (const [dRow, dCol] of DIRECTIONS) {
+        const line: number[] = [];
+        let matched = true;
+
+        for (let step = 0; step < winLength; step++) {
+          const r = row + dRow * step;
+          const c = col + dCol * step;
+          if (at(r, c) !== mark) {
+            matched = false;
+            break;
+          }
+          line.push(r * size + c);
+        }
+
+        if (matched) {
+          return { winner: mark, line };
+        }
+      }
     }
   }
+
   if (board.every((cell) => cell !== null)) {
     return { winner: "draw", line: null };
   }
+
   return { winner: null, line: null };
 }
 
-export function createEmptyBoard(): Cell[] {
-  return Array(9).fill(null);
+export function createEmptyBoard(size: number): Cell[] {
+  return Array(size * size).fill(null);
 }
 
 export function generateId(length = 5): string {

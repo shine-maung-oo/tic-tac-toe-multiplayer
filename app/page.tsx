@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { GAME_MODES, GameMode } from "@/lib/game";
 
 export default function HomePage() {
   const router = useRouter();
   const [joinCode, setJoinCode] = useState("");
+  const [mode, setMode] = useState<GameMode>("classic");
   const [loading, setLoading] = useState<"create" | "join" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -13,7 +15,11 @@ export default function HomePage() {
     setLoading("create");
     setError(null);
     try {
-      const res = await fetch("/api/room/create", { method: "POST" });
+      const res = await fetch("/api/room/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode }),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Could not create a room");
       localStorage.setItem(
@@ -101,13 +107,94 @@ export default function HomePage() {
         <p
           style={{
             textAlign: "center",
-            margin: "0 0 32px",
+            margin: "0 0 28px",
             color: "rgba(241,239,228,0.6)",
             fontSize: "0.95rem",
           }}
         >
           Two devices, one board. Pass the code, take the desk.
         </p>
+
+        <p
+          style={{
+            margin: "0 0 10px",
+            color: "rgba(241,239,228,0.5)",
+            fontSize: "0.78rem",
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+          }}
+        >
+          Game type
+        </p>
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+            marginBottom: 24,
+          }}
+        >
+          {(Object.entries(GAME_MODES) as [GameMode, (typeof GAME_MODES)[GameMode]][]).map(
+            ([key, config]) => {
+              const selected = mode === key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => setMode(key)}
+                  disabled={loading !== null}
+                  style={{
+                    textAlign: "left",
+                    padding: "12px 16px",
+                    borderRadius: 12,
+                    border: selected
+                      ? "1.5px solid var(--chalk-yellow)"
+                      : "1px solid rgba(241,239,228,0.15)",
+                    background: selected
+                      ? "rgba(232,196,104,0.1)"
+                      : "rgba(0,0,0,0.15)",
+                    cursor: "pointer",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      color: selected ? "var(--chalk-yellow)" : "var(--chalk-white)",
+                      fontWeight: 600,
+                      fontSize: "0.95rem",
+                    }}
+                  >
+                    <span
+                      aria-hidden
+                      style={{
+                        width: 14,
+                        height: 14,
+                        borderRadius: "50%",
+                        border: selected
+                          ? "4px solid var(--chalk-yellow)"
+                          : "1.5px solid rgba(241,239,228,0.35)",
+                        boxSizing: "border-box",
+                        flexShrink: 0,
+                      }}
+                    />
+                    {config.label}
+                  </div>
+                  <p
+                    style={{
+                      margin: "4px 0 0 22px",
+                      color: "rgba(241,239,228,0.55)",
+                      fontSize: "0.82rem",
+                    }}
+                  >
+                    {config.description}
+                  </p>
+                </button>
+              );
+            }
+          )}
+        </div>
 
         <button
           onClick={handleCreate}
@@ -123,6 +210,7 @@ export default function HomePage() {
             fontSize: "1rem",
             marginBottom: 14,
             opacity: loading === "create" ? 0.7 : 1,
+            cursor: "pointer",
           }}
         >
           {loading === "create" ? "Setting up the board…" : "Start a new game"}
@@ -173,6 +261,7 @@ export default function HomePage() {
               color: "var(--chalk-rose)",
               fontWeight: 600,
               opacity: loading === "join" ? 0.7 : 1,
+              cursor: "pointer",
             }}
           >
             {loading === "join" ? "…" : "Join"}
