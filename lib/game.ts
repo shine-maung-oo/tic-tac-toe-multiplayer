@@ -31,9 +31,9 @@ export const GAME_MODES: Record<GameMode, GameModeConfig> = {
   },
   connect6in8: {
     size: 8,
-    winLength: 6,
-    label: "6 in a Row · 8×8",
-    description: "Bigger board, no gravity — click any cell. Six in a row wins.",
+    winLength: 5,
+    label: "5 in a Row · 8×8",
+    description: "Bigger board, no gravity — click any cell. Five in a row wins.",
   },
 };
 
