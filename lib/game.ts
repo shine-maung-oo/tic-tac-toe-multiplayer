@@ -1,7 +1,7 @@
 export type Cell = "X" | "O" | null;
 export type Mark = "X" | "O";
 
-export type GameMode = "classic" | "connect4";
+export type GameMode = "classic" | "connect4in6" | "connect5in7" | "connect6in8";
 
 export interface GameModeConfig {
   size: number; // board is size x size
@@ -17,11 +17,23 @@ export const GAME_MODES: Record<GameMode, GameModeConfig> = {
     label: "Classic 3×3",
     description: "The original. Three in a row wins.",
   },
-  connect4: {
-    size: 7,
+  connect4in6: {
+    size: 6,
     winLength: 4,
-    label: "4 in a Row · 7×7",
+    label: "4 in a Row · 6×6",
     description: "Bigger board, no gravity — click any cell. Four in a row wins.",
+  },
+  connect5in7: {
+    size: 7,
+    winLength: 5,
+    label: "5 in a Row · 7×7",
+    description: "Bigger board, no gravity — click any cell. Five in a row wins.",
+  },
+  connect6in8: {
+    size: 8,
+    winLength: 6,
+    label: "6 in a Row · 8×8",
+    description: "Bigger board, no gravity — click any cell. Six in a row wins.",
   },
 };
 
